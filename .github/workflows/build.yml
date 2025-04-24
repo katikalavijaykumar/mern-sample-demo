@@ -21,22 +21,22 @@ jobs:
 
       - name: Install client dependencies
         run: |
-          cd client
+          cd frontend
           npm ci
 
       - name: Install server dependencies
         run: |
-          cd server
+          cd backend
           npm ci
 
-      - name: Run client tests and generate coverage
+      - name: Run frontend tests and generate coverage
         run: |
-          cd client
+          cd frontend
           npm run test -- --coverage --watchAll=false --passWithNoTests || true
 
-      - name: Run server tests
+      - name: Run backend tests
         run: |
-          cd server
+          cd backend
           npm run test -- --coverage --watchAll=false --passWithNoTests || true
 
       - name: Combine lcov reports
