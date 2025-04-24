@@ -1,0 +1,60 @@
+name: SonarQube Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  sonarqube:
+    name: Analyze with SonarQube
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install client dependencies
+        run: |
+          cd client
+          npm ci
+
+      - name: Install server dependencies
+        run: |
+          cd server
+          npm ci
+
+      - name: Run client tests and generate coverage
+        run: |
+          cd client
+          npm run test -- --coverage --watchAll=false --passWithNoTests || true
+
+      - name: Run server tests
+        run: |
+          cd server
+          npm run test -- --coverage --watchAll=false --passWithNoTests || true
+
+      - name: Combine lcov reports
+        shell: bash
+        run: |
+          mkdir -p coverage
+          if [ -f client/coverage/lcov.info ]; then cp client/coverage/lcov.info coverage/lcov-client.info; fi
+          if [ -f server/coverage/lcov.info ]; then cp server/coverage/lcov.info coverage/lcov-server.info; fi
+          if [ -f coverage/lcov-client.info ] && [ -f coverage/lcov-server.info ]; then
+            cat coverage/lcov-client.info coverage/lcov-server.info > coverage/lcov.info
+          elif [ -f coverage/lcov-client.info ]; then
+            cp coverage/lcov-client.info coverage/lcov.info
+          elif [ -f coverage/lcov-server.info ]; then
+            cp coverage/lcov-server.info coverage/lcov.info
+          fi
+
+      - name: Run SonarQube analysis
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
